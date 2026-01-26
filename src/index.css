@@ -1,0 +1,251 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Romantic color palette */
+    --background: 30 30% 98%;
+    --foreground: 350 20% 20%;
+
+    --card: 30 40% 97%;
+    --card-foreground: 350 20% 20%;
+
+    --popover: 30 30% 98%;
+    --popover-foreground: 350 20% 20%;
+
+    /* Rose gold primary */
+    --primary: 350 60% 65%;
+    --primary-foreground: 30 30% 98%;
+
+    /* Soft blush secondary */
+    --secondary: 350 30% 90%;
+    --secondary-foreground: 350 20% 30%;
+
+    /* Muted warm tones */
+    --muted: 30 20% 92%;
+    --muted-foreground: 350 15% 45%;
+
+    /* Champagne accent */
+    --accent: 35 50% 80%;
+    --accent-foreground: 350 20% 20%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 350 20% 88%;
+    --input: 350 20% 88%;
+    --ring: 350 60% 65%;
+
+    --radius: 0.75rem;
+
+    /* Custom romantic colors */
+    --rose: 350 60% 65%;
+    --rose-light: 350 70% 85%;
+    --rose-dark: 350 50% 45%;
+    --blush: 350 40% 92%;
+    --cream: 35 40% 95%;
+    --champagne: 35 50% 80%;
+    --gold: 40 70% 55%;
+    --burgundy: 350 50% 25%;
+    
+    /* Gradients */
+    --gradient-romantic: linear-gradient(135deg, hsl(350 60% 65%) 0%, hsl(350 70% 75%) 50%, hsl(35 50% 80%) 100%);
+    --gradient-soft: linear-gradient(180deg, hsl(30 30% 98%) 0%, hsl(350 40% 95%) 100%);
+    --gradient-overlay: linear-gradient(180deg, hsla(350 20% 20% / 0.1) 0%, hsla(350 20% 20% / 0.6) 100%);
+    --gradient-hero: linear-gradient(135deg, hsla(350 60% 65% / 0.15) 0%, hsla(35 50% 80% / 0.1) 100%);
+    
+    /* Shadows */
+    --shadow-soft: 0 4px 30px hsla(350 60% 65% / 0.15);
+    --shadow-elegant: 0 10px 40px hsla(350 20% 20% / 0.1);
+    --shadow-glow: 0 0 30px hsla(350 60% 65% / 0.3);
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 350 20% 8%;
+    --foreground: 30 30% 95%;
+
+    --card: 350 20% 12%;
+    --card-foreground: 30 30% 95%;
+
+    --popover: 350 20% 10%;
+    --popover-foreground: 30 30% 95%;
+
+    --primary: 350 60% 70%;
+    --primary-foreground: 350 20% 10%;
+
+    --secondary: 350 25% 18%;
+    --secondary-foreground: 30 30% 95%;
+
+    --muted: 350 20% 15%;
+    --muted-foreground: 350 15% 60%;
+
+    --accent: 35 40% 25%;
+    --accent-foreground: 30 30% 95%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 350 20% 18%;
+    --input: 350 20% 18%;
+    --ring: 350 60% 70%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Cormorant Garamond', serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Playfair Display', serif;
+  }
+}
+
+@layer components {
+  .text-romantic-gradient {
+    background: linear-gradient(135deg, hsl(var(--rose)) 0%, hsl(var(--gold)) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .bg-romantic-gradient {
+    background: var(--gradient-romantic);
+  }
+
+  .bg-soft-gradient {
+    background: var(--gradient-soft);
+  }
+
+  .glass-card {
+    background: hsla(30 40% 97% / 0.7);
+    backdrop-filter: blur(20px);
+    border: 1px solid hsla(350 20% 88% / 0.5);
+    box-shadow: var(--shadow-elegant);
+  }
+
+  .romantic-shadow {
+    box-shadow: var(--shadow-soft);
+  }
+
+  .glow-shadow {
+    box-shadow: var(--shadow-glow);
+  }
+}
+
+@layer utilities {
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .animate-float-delayed {
+    animation: float 6s ease-in-out infinite;
+    animation-delay: 2s;
+  }
+
+  .animate-pulse-soft {
+    animation: pulse-soft 3s ease-in-out infinite;
+  }
+
+  .animate-shimmer {
+    animation: shimmer 3s ease-in-out infinite;
+  }
+
+  .animate-heart-beat {
+    animation: heart-beat 1.5s ease-in-out infinite;
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-20px) rotate(5deg);
+  }
+}
+
+@keyframes pulse-soft {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes heart-beat {
+  0%, 100% {
+    transform: scale(1);
+  }
+  25% {
+    transform: scale(1.1);
+  }
+  45% {
+    transform: scale(1);
+  }
+  65% {
+    transform: scale(1.05);
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--cream));
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--rose-light));
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--rose));
+}
+
+/* Hide scrollbars but keep scroll */
+.hide-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}

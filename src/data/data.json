@@ -1,0 +1,58 @@
+{
+  "couple": {
+    "name1": "Emma",
+    "name2": "James"
+  },
+  "song": {
+    "url": "Indila_-_Love_story_viennese_waltz_by_DJ_Maksy_(mp3.pm).mp3",
+    "title": "love story viennese waltz"
+  },
+  "storyOverview": {
+    "beginning": {
+      "title": "Our Beginning",
+      "subtitle": "Where It All Started",
+      "text": "It was a crisp autumn evening when our paths first crossed. The golden leaves danced in the wind as if celebrating a moment that would change our lives forever. What started as a chance encounter became the most beautiful chapter of our lives."
+    },
+    "specialDate": {
+      "title": "Our Special Date",
+      "date": "September 15, 2021",
+      "text": "The night we knew this was forever. Under a canopy of stars, with the city lights twinkling below, we made a promise to always choose each other. Every day since has been a gift."
+    },
+    "words": {
+      "title": "Our Words",
+      "quote": "In all the world, there is no heart for me like yours. In all the world, there is no love for you like mine.",
+      "author": "Maya Angelou"
+    }
+  },
+  "chapters": [
+    {
+      "id": 1,
+      "title": "The First Hello",
+      "image": "src/assets/chapter1.jpg",
+      "story": "Our eyes met across a crowded room, and in that moment, time seemed to stand still. Little did we know that this simple hello would lead to a lifetime of love and adventure together."
+    },
+    {
+      "id": 2,
+      "title": "Our First Adventure",
+      "image": "src/assets/chapter2.jpg",
+      "story": "We packed our bags with nothing but dreams and set off into the unknown. Every new place we explored brought us closer, teaching us that home isn't a place—it's a person."
+    },
+    {
+      "id": 3,
+      "title": "The Proposal",
+      "image": "src/assets/chapter3.jpg",
+      "story": "With trembling hands and a heart full of hope, the question was asked under the same stars that had witnessed our first dance. The answer came with tears of joy and a promise of forever."
+    },
+    {
+      "id": 4,
+      "title": "Building Our Dreams",
+      "image": "src/assets/chapter4.jpg",
+      "story": "Together, we've built more than just a life—we've created a sanctuary of love, laughter, and endless possibilities. Every morning, we wake up grateful for this beautiful journey we share."
+    }
+  ],
+  "finale": {
+    "image": "src/assets/finale.jpg",
+    "title": "Forever & Always",
+    "text": "This is not just our story—it's a celebration of love in its purest form. Through every storm and every sunrise, we choose each other. Today, tomorrow, and for all the tomorrows that follow. Here's to us, to love, and to the beautiful adventure that lies ahead."
+  }
+}
