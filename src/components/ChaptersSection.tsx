@@ -127,7 +127,10 @@ const ChaptersSection = ({ chapters }: ChaptersSectionProps) => {
               key={chapter.id}
               chapter={chapter}
               index={index}
-              onClick={() => setSelectedChapter(chapter)}
+              onClick={() => setSelectedChapter({
+                ...chapter,
+                image: chapterImages[chapter.id] || chapter.image
+              })}
             />
           ))}
         </div>
