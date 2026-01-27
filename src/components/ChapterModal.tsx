@@ -21,25 +21,23 @@ const ChapterModal = ({ chapter, isOpen, onClose }: ChapterModalProps) => {
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop */}
+          {/* Backdrop + Centered Container */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-foreground/60 backdrop-blur-sm z-50"
-          />
-          
-          {/* Modal */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed inset-4 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 
-                       md:max-w-3xl md:w-full md:max-h-[90vh] 
-                       bg-card rounded-3xl overflow-hidden shadow-2xl z-50"
+            className="fixed inset-0 bg-foreground/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
           >
+            {/* Modal */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-3xl max-h-[90vh] bg-card rounded-3xl overflow-hidden shadow-2xl"
+            >
             {/* Close button */}
             <button
               onClick={onClose}
@@ -49,22 +47,22 @@ const ChapterModal = ({ chapter, isOpen, onClose }: ChapterModalProps) => {
               <X size={20} />
             </button>
 
-            <div className="flex flex-col md:flex-row h-full max-h-[calc(100vh-2rem)] md:max-h-[80vh]">
-              {/* Image */}
-              <div className="md:w-1/2 h-64 md:h-auto relative overflow-hidden">
+            <div className="flex flex-col h-full max-h-[calc(100vh-2rem)] md:max-h-[85vh] overflow-y-auto">
+              {/* Centered Image for larger screens */}
+              <div className="w-full h-64 md:h-[50vh] relative overflow-hidden flex-shrink-0">
                 <motion.img
                   initial={{ scale: 1.1 }}
                   animate={{ scale: 1 }}
                   transition={{ duration: 0.6 }}
                   src={chapter.image}
                   alt={chapter.title}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover md:object-contain md:bg-black/20"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-card/50 to-transparent md:bg-gradient-to-r" />
+                <div className="absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent" />
               </div>
 
               {/* Content */}
-              <div className="md:w-1/2 p-8 md:p-10 flex flex-col justify-center overflow-y-auto">
+              <div className="p-8 md:p-10 flex flex-col items-center text-center">
                 <motion.span
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -87,12 +85,13 @@ const ChapterModal = ({ chapter, isOpen, onClose }: ChapterModalProps) => {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4 }}
-                  className="font-body text-lg leading-relaxed text-muted-foreground"
+                  className="font-body text-lg leading-relaxed text-muted-foreground max-w-2xl"
                 >
                   {chapter.story}
                 </motion.p>
               </div>
             </div>
+            </motion.div>
           </motion.div>
         </>
       )}
