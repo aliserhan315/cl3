@@ -130,7 +130,7 @@ const FinaleSection = ({ finale, coupleNames }: FinaleSectionProps) => {
         className="absolute bottom-8 left-0 right-0 text-center"
       >
         <p className="font-body text-sm text-primary-foreground/50">
-          Made with love ♥ Our story continues...
+          Made with love, Our story continues...
         </p>
       </motion.footer>
     </section>
