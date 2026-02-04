@@ -26,7 +26,7 @@ interface StoryOverviewProps {
   story: StoryData;
 }
 
-// Animated floating orbs for background
+// Optimized floating orbs - uses transform and opacity only for GPU acceleration
 const FloatingOrb = ({ 
   className, 
   delay = 0, 
@@ -45,18 +45,18 @@ const FloatingOrb = ({
       opacity: [0.15, 0.25, 0.15],
       x: [0, 30, -20, 0],
       y: [0, -40, 20, 0],
-      scale: [1, 1.1, 0.95, 1],
     } : { opacity: 0.2 }}
     transition={{
       duration,
       delay,
       repeat: Infinity,
-      ease: "easeInOut",
+      ease: "linear", // Changed to linear for smoother animation
     }}
+    style={{ willChange: 'transform, opacity' }} // Hint to browser for optimization
   />
 );
 
-// Full-screen invitation-style view
+// Optimized invitation view
 const InvitationView = ({ 
   children, 
   delay = 0,
@@ -69,10 +69,10 @@ const InvitationView = ({
   shouldAnimate?: boolean;
 }) => {
   const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: "-100px" });
+  const isInView = useInView(ref, { once: true, margin: "-100px", amount: 0.3 });
 
   const variants = {
-    hidden: { opacity: 0, y: 40 },
+    hidden: { opacity: 0, y: 20 }, // Reduced distance for smoother feel
     visible: { opacity: 1, y: 0 },
   };
 
@@ -82,8 +82,9 @@ const InvitationView = ({
       initial={shouldAnimate ? "hidden" : false}
       animate={shouldAnimate && isInView ? "visible" : undefined}
       variants={shouldAnimate ? variants : undefined}
-      transition={{ duration: 0.7, delay, ease: [0.25, 0.46, 0.45, 0.94] }}
+      transition={{ duration: 0.5, delay, ease: "easeOut" }} // Shortened duration
       className="relative h-full min-h-[500px] md:min-h-[600px] flex items-center justify-center py-12"
+      style={{ willChange: shouldAnimate && !isInView ? 'transform, opacity' : 'auto' }}
     >
       {/* Content */}
       <div className="relative z-10 w-full flex flex-col items-center justify-center px-6 md:px-12 text-center">
@@ -164,7 +165,7 @@ const CarouselDots = ({
           width: index === current ? 32 : 8,
           opacity: index === current ? 1 : 0.4,
         }}
-        transition={{ duration: 0.3 }}
+        transition={{ duration: 0.2, ease: "easeOut" }} // Faster transition
         className="h-2 rounded-full bg-primary"
       />
     ))}
@@ -179,12 +180,14 @@ const StoryOverview = ({ story }: StoryOverviewProps) => {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const cardRefs = useRef<Array<HTMLDivElement | null>>([]);
 
+  // Optimized scroll handler with throttling
   useEffect(() => {
     if (!isMobile) return;
     const container = scrollRef.current;
     if (!container) return;
 
-    let frame = 0;
+    let ticking = false;
+
     const updateCurrent = () => {
       const containerCenter = container.scrollLeft + container.clientWidth / 2;
       let closestIndex = 0;
@@ -201,25 +204,33 @@ const StoryOverview = ({ story }: StoryOverviewProps) => {
       });
 
       setCurrent(closestIndex);
+      ticking = false;
     };
 
     const onScroll = () => {
-      if (frame) cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(updateCurrent);
+      if (!ticking) {
+        requestAnimationFrame(updateCurrent);
+        ticking = true;
+      }
     };
 
     updateCurrent();
     container.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll);
+    
+    const resizeObserver = new ResizeObserver(() => {
+      if (!ticking) {
+        requestAnimationFrame(updateCurrent);
+        ticking = true;
+      }
+    });
+    resizeObserver.observe(container);
 
     return () => {
-      if (frame) cancelAnimationFrame(frame);
       container.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', onScroll);
+      resizeObserver.disconnect();
     };
   }, [isMobile]);
 
-  // Simple views without individual backgrounds
   const cards = [
     {
       content: <BeginningCard story={story} />,
@@ -234,35 +245,24 @@ const StoryOverview = ({ story }: StoryOverviewProps) => {
 
   return (
     <section id="story" className="py-24 md:py-32 relative overflow-hidden">
-      {/* Animated gradient background */}
+      {/* Static gradient background - no animation for better performance */}
       <div className="absolute inset-0 bg-gradient-to-br from-rose-light/20 via-background to-champagne/20" />
       
-      {/* Floating orbs */}
+      {/* Reduced number of floating orbs and simpler animations */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <FloatingOrb 
           className="absolute top-20 left-[10%] w-72 h-72 rounded-full bg-primary/20 blur-3xl"
           delay={0}
-          duration={16}
+          duration={20} // Slower = smoother
           shouldAnimate={shouldAnimate}
         />
         <FloatingOrb 
           className="absolute bottom-32 right-[15%] w-96 h-96 rounded-full bg-champagne/30 blur-3xl"
-          delay={2}
-          duration={18}
-          shouldAnimate={shouldAnimate}
-        />
-        <FloatingOrb 
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-rose-light/15 blur-3xl"
           delay={4}
-          duration={14}
+          duration={24}
           shouldAnimate={shouldAnimate}
         />
-        <FloatingOrb 
-          className="absolute top-[30%] right-[25%] w-48 h-48 rounded-full bg-blush/25 blur-2xl"
-          delay={1}
-          duration={12}
-          shouldAnimate={shouldAnimate}
-        />
+        {/* Removed two orbs to reduce GPU load */}
       </div>
       
       {/* Subtle pattern overlay */}
@@ -276,10 +276,10 @@ const StoryOverview = ({ story }: StoryOverviewProps) => {
       
       <div className="container mx-auto px-4 relative z-10">
         <motion.div
-          initial={shouldAnimate ? { opacity: 0, y: 30 } : false}
+          initial={shouldAnimate ? { opacity: 0, y: 20 } : false}
           whileInView={shouldAnimate ? { opacity: 1, y: 0 } : undefined}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8 }}
+          viewport={{ once: true, amount: 0.3 }}
+          transition={{ duration: 0.6 }}
           className="text-center mb-16"
         >
           <span className="font-body text-primary tracking-[0.2em] uppercase text-sm">
@@ -295,7 +295,10 @@ const StoryOverview = ({ story }: StoryOverviewProps) => {
             <div
               ref={scrollRef}
               className="flex gap-8 overflow-x-auto snap-x snap-mandatory px-6 pb-8 hide-scrollbar"
-              style={{ scrollPaddingLeft: '1.5rem' }}
+              style={{ 
+                scrollPaddingLeft: '1.5rem',
+                scrollBehavior: 'smooth' // Native smooth scrolling
+              }}
             >
               {cards.map((card, index) => (
                 <motion.div
@@ -305,13 +308,14 @@ const StoryOverview = ({ story }: StoryOverviewProps) => {
                   }}
                   className="snap-center shrink-0 w-full"
                   animate={shouldAnimate ? {
-                    scale: current === index ? 1 : 0.90,
-                    opacity: current === index ? 1 : 0.4,
+                    scale: current === index ? 1 : 0.92,
+                    opacity: current === index ? 1 : 0.5,
                   } : undefined}
-                  transition={{ duration: 0.4, ease: "easeOut" }}
+                  transition={{ duration: 0.3, ease: "easeOut" }} // Faster, smoother
+                  style={{ willChange: 'transform, opacity' }}
                 >
                   <InvitationView 
-                    delay={index * 0.1} 
+                    delay={0} // Remove staggered delay on mobile for instant response
                     isActive={current === index}
                     shouldAnimate={shouldAnimate}
                   >
@@ -327,7 +331,7 @@ const StoryOverview = ({ story }: StoryOverviewProps) => {
             {cards.map((card, index) => (
               <InvitationView 
                 key={index} 
-                delay={index * 0.15} 
+                delay={index * 0.1} // Reduced stagger
                 shouldAnimate={shouldAnimate}
               >
                 {card.content}
@@ -337,7 +341,6 @@ const StoryOverview = ({ story }: StoryOverviewProps) => {
         )}
       </div>
 
-      {/* Add this to your global CSS to hide scrollbar */}
       <style jsx>{`
         .hide-scrollbar {
           -ms-overflow-style: none;
