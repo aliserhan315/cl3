@@ -3,7 +3,7 @@ import { Volume2, VolumeX, Music } from "lucide-react";
 
 interface AudioPlayerProps {
   songTitle: string;
-  songUrl: string; // can be mp3 url OR YouTube url
+  songUrl: string; // mp3 url OR YouTube url
 }
 
 /** Detect youtube links (youtube.com / youtu.be) */
@@ -17,71 +17,61 @@ const isYouTubeUrl = (url: string) => {
   }
 };
 
-/** Convert YouTube watch/embed/short/youtu.be -> embed URL */
-const toYouTubeEmbedUrl = (url: string) => {
+/** Extract YouTube video id from common url formats */
+const getYouTubeVideoId = (url: string) => {
   try {
     const u = new URL(url);
     const host = u.hostname.replace("www.", "");
 
-    let videoId = "";
-
     if (host === "youtu.be") {
-      videoId = u.pathname.replace("/", "");
-    } else if (u.pathname.startsWith("/watch")) {
-      videoId = u.searchParams.get("v") || "";
-    } else if (u.pathname.startsWith("/embed/")) {
-      videoId = u.pathname.split("/embed/")[1] || "";
-    } else if (u.pathname.startsWith("/shorts/")) {
-      videoId = u.pathname.split("/shorts/")[1] || "";
+      return u.pathname.replace("/", "").split("?")[0].split("&")[0];
     }
 
-    // strip extra path fragments (e.g. /shorts/ID?...)
-    videoId = videoId.split("?")[0].split("&")[0].split("/")[0];
+    if (u.pathname === "/watch") {
+      return (u.searchParams.get("v") || "").trim();
+    }
 
-    if (!videoId) return url;
+    if (u.pathname.startsWith("/embed/")) {
+      return (u.pathname.split("/embed/")[1] || "").split("?")[0].split("&")[0];
+    }
 
-    // Note:
-    // - Autoplay with sound is usually blocked.
-    // - Autoplay muted is more likely to work.
-    // - loop for YT needs playlist=VIDEO_ID
-    const params = new URLSearchParams({
-      autoplay: "1",
-      mute: "1",
-      controls: "0",
-      playsinline: "1",
-      rel: "0",
-      modestbranding: "1",
-      loop: "1",
-      playlist: videoId,
-    });
+    if (u.pathname.startsWith("/shorts/")) {
+      return (u.pathname.split("/shorts/")[1] || "").split("?")[0].split("&")[0];
+    }
 
-    return `https://www.youtube.com/embed/${videoId}?${params.toString()}`;
+    return "";
   } catch {
-    return url;
+    return "";
   }
 };
 
+declare global {
+  interface Window {
+    YT?: any;
+    onYouTubeIframeAPIReady?: () => void;
+  }
+}
+
 const AudioPlayer = ({ songTitle, songUrl }: AudioPlayerProps) => {
   const isYT = useMemo(() => isYouTubeUrl(songUrl), [songUrl]);
-  const ytEmbed = useMemo(() => (isYT ? toYouTubeEmbedUrl(songUrl) : ""), [isYT, songUrl]);
+  const ytId = useMemo(() => (isYT ? getYouTubeVideoId(songUrl) : ""), [isYT, songUrl]);
 
-  // Start as "trying to play + unmuted" on mount (for audio files)
+  // UI state
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+
+  // MP3 audio ref
   const audioRef = useRef<HTMLAudioElement>(null);
 
-  useEffect(() => {
-    // If YouTube: we can't control play/pause/mute reliably from an iframe without the YouTube IFrame API.
-    // We'll treat the UI as a "simple hint": autoplay will be muted; user can open YT controls by clicking play.
-    if (isYT) {
-      setIsPlaying(true);
-      setIsMuted(true); // embed starts muted
-      const t = setTimeout(() => setIsVisible(true), 2000);
-      return () => clearTimeout(t);
-    }
+  // YouTube player refs
+  const ytPlayerRef = useRef<any>(null);
+  const ytContainerIdRef = useRef(`yt-audio-${Math.random().toString(16).slice(2)}`);
 
-    // Normal audio file behavior
+  // --- MP3 autoplay (same logic you had) ---
+  useEffect(() => {
+    if (isYT) return;
+
     const audio = audioRef.current;
     if (!audio) return;
 
@@ -89,20 +79,17 @@ const AudioPlayer = ({ songTitle, songUrl }: AudioPlayerProps) => {
 
     const startAudio = async () => {
       try {
-        // Try autoplay with sound
         audio.muted = false;
         await audio.play();
         setIsPlaying(true);
         setIsMuted(false);
       } catch {
-        // Autoplay with sound blocked -> fallback to muted autoplay
         try {
           audio.muted = true;
           await audio.play();
           setIsPlaying(true);
           setIsMuted(true);
         } catch {
-          // Autoplay fully blocked
           setIsPlaying(false);
           setIsMuted(true);
         }
@@ -110,14 +97,150 @@ const AudioPlayer = ({ songTitle, songUrl }: AudioPlayerProps) => {
     };
 
     startAudio();
+  }, [isYT, songUrl]);
+
+  // --- YouTube: load API + create hidden player ---
+  useEffect(() => {
+    if (!isYT) return;
+    if (!ytId) {
+      setIsPlaying(false);
+      setIsMuted(true);
+      return;
+    }
+
+    const showTimer = setTimeout(() => setIsVisible(true), 2000);
+
+    const ensureScript = () =>
+      new Promise<void>((resolve) => {
+        // already loaded
+        if (window.YT && window.YT.Player) return resolve();
+
+        // already injected
+        const existing = document.getElementById("yt-iframe-api");
+        if (existing) {
+          const check = setInterval(() => {
+            if (window.YT && window.YT.Player) {
+              clearInterval(check);
+              resolve();
+            }
+          }, 50);
+          return;
+        }
+
+        const tag = document.createElement("script");
+        tag.id = "yt-iframe-api";
+        tag.src = "https://www.youtube.com/iframe_api";
+        document.body.appendChild(tag);
+
+        const prev = window.onYouTubeIframeAPIReady;
+        window.onYouTubeIframeAPIReady = () => {
+          prev?.();
+          resolve();
+        };
+      });
+
+    const createPlayer = async () => {
+      await ensureScript();
+
+      // destroy old player if any
+      if (ytPlayerRef.current?.destroy) {
+        try {
+          ytPlayerRef.current.destroy();
+        } catch {
+          /* ignore */
+        }
+        ytPlayerRef.current = null;
+      }
+
+      ytPlayerRef.current = new window.YT.Player(ytContainerIdRef.current, {
+        videoId: ytId,
+        playerVars: {
+          autoplay: 1,
+          controls: 0,
+          rel: 0,
+          modestbranding: 1,
+          playsinline: 1,
+          loop: 1,
+          playlist: ytId, // required for loop
+        },
+        events: {
+          onReady: async (e: any) => {
+            const p = e.target;
+
+            // set volume similar to mp3 behavior (0-100)
+            try {
+              p.setVolume(30);
+            } catch {}
+
+            // Try autoplay with sound first, then fallback to muted
+            try {
+              p.unMute();
+              setIsMuted(false);
+              p.playVideo();
+              setIsPlaying(true);
+            } catch {
+              try {
+                p.mute();
+                setIsMuted(true);
+                p.playVideo();
+                setIsPlaying(true);
+              } catch {
+                setIsPlaying(false);
+                setIsMuted(true);
+              }
+            }
+          },
+          onStateChange: (e: any) => {
+            // YT states: 1 playing, 2 paused, 0 ended
+            if (e.data === 1) setIsPlaying(true);
+            if (e.data === 2) setIsPlaying(false);
+            if (e.data === 0) setIsPlaying(false);
+          },
+        },
+      });
+    };
+
+    createPlayer();
+
+    return () => {
+      clearTimeout(showTimer);
+      if (ytPlayerRef.current?.destroy) {
+        try {
+          ytPlayerRef.current.destroy();
+        } catch {
+          /* ignore */
+        }
+        ytPlayerRef.current = null;
+      }
+    };
+  }, [isYT, ytId]);
+
+  // visibility timer for both cases
+  useEffect(() => {
+    if (isYT) return; // YT handled above
     const t = setTimeout(() => setIsVisible(true), 2000);
     return () => clearTimeout(t);
   }, [isYT]);
 
   const togglePlay = async () => {
-    // YouTube fallback: open the song in a new tab (best UX without the iframe API)
     if (isYT) {
-      window.open(songUrl, "_blank", "noopener,noreferrer");
+      const p = ytPlayerRef.current;
+      if (!p) return;
+
+      try {
+        if (isPlaying) {
+          p.pauseVideo();
+          setIsPlaying(false);
+        } else {
+          // user gesture helps unmute policies
+          p.unMute();
+          setIsMuted(false);
+          p.playVideo();
+          setIsPlaying(true);
+        }
+      } catch {
+        /* ignore */
+      }
       return;
     }
 
@@ -131,7 +254,6 @@ const AudioPlayer = ({ songTitle, songUrl }: AudioPlayerProps) => {
         return;
       }
 
-      // When user clicks play, we can safely unmute (gesture)
       audio.muted = false;
       setIsMuted(false);
       await audio.play();
@@ -142,10 +264,21 @@ const AudioPlayer = ({ songTitle, songUrl }: AudioPlayerProps) => {
   };
 
   const toggleMute = () => {
-    // YouTube fallback: cannot reliably mute/unmute without YouTube IFrame API
     if (isYT) {
-      // keep state toggling for UI only
-      setIsMuted((m) => !m);
+      const p = ytPlayerRef.current;
+      if (!p) return;
+
+      try {
+        if (isMuted) {
+          p.unMute();
+          setIsMuted(false);
+        } else {
+          p.mute();
+          setIsMuted(true);
+        }
+      } catch {
+        /* ignore */
+      }
       return;
     }
 
@@ -156,7 +289,6 @@ const AudioPlayer = ({ songTitle, songUrl }: AudioPlayerProps) => {
     audio.muted = nextMuted;
     setIsMuted(nextMuted);
 
-    // If user unmutes and audio was paused, try to play (gesture)
     if (!nextMuted && !isPlaying) {
       audio
         .play()
@@ -197,6 +329,7 @@ const AudioPlayer = ({ songTitle, songUrl }: AudioPlayerProps) => {
           animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
         }
 
+        /* hidden YouTube player container */
         .yt-hidden {
           position: fixed;
           width: 1px;
@@ -208,19 +341,15 @@ const AudioPlayer = ({ songTitle, songUrl }: AudioPlayerProps) => {
         }
       `}</style>
 
-      {/* If YouTube URL: embed a muted autoplay loop (works only if browser allows) */}
-      {isYT ? (
-        <iframe
-          className="yt-hidden"
-          src={ytEmbed}
-          title="YouTube audio"
-          allow="autoplay; encrypted-media"
-        />
-      ) : (
+      {/* MP3 / direct audio */}
+      {!isYT && (
         <audio ref={audioRef} loop preload="auto">
           <source src={songUrl} type="audio/mpeg" />
         </audio>
       )}
+
+      {/* YouTube hidden player */}
+      {isYT && <div id={ytContainerIdRef.current} className="yt-hidden" />}
 
       <div
         className={`fixed bottom-6 right-6 z-50 ${
@@ -232,26 +361,19 @@ const AudioPlayer = ({ songTitle, songUrl }: AudioPlayerProps) => {
             onClick={togglePlay}
             className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white btn-hover"
             aria-label={isPlaying ? "Pause music" : "Play music"}
-            title={isYT ? "Open YouTube" : undefined}
           >
             <Music size={18} className={isPlaying ? "pulse-animation" : ""} />
           </button>
 
           <div className="hidden sm:block">
             <p className="text-xs text-gray-400">Now Playing</p>
-            <p className="text-sm text-gray-900 dark:text-gray-100">
-              {songTitle}
-            </p>
-            {isYT && (
-              <p className="text-[10px] text-gray-400">YouTube link</p>
-            )}
+            <p className="text-sm text-gray-900 dark:text-gray-100">{songTitle}</p>
           </div>
 
           <button
             onClick={toggleMute}
             className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-900 dark:text-gray-100 btn-hover"
             aria-label={isMuted ? "Unmute" : "Mute"}
-            title={isYT ? "Mute toggle is limited for YouTube" : undefined}
           >
             {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
           </button>
