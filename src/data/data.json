@@ -1,58 +1,65 @@
 {
   "couple": {
-    "name1": "Emma",
-    "name2": "James"
+    "name1": "سلوى",
+    "name2": "نور الدين"
   },
   "song": {
-    "url": "Indila_-_Love_story_viennese_waltz_by_DJ_Maksy_(mp3.pm).mp3",
-    "title": "love story viennese waltz"
+    "url": "https://youtu.be/l_4m7SsNXZ8?si=Yh02ZXLN8cXq-AB4",
+    "title": "حبيبي للأبد ♡"
+  },
+  "meta": {
+    "orderDate": "2025-12-19",
+    "caption": "بداية عمر جديد النا♡",
+    "package": "1 Frame - 1 Card (30$)",
+    "orderId": "76065559",
+    "phone": "76065559"
   },
   "storyOverview": {
     "beginning": {
-      "title": "Our Beginning",
-      "subtitle": "Where It All Started",
-      "text": "It was a crisp autumn evening when our paths first crossed. The golden leaves danced in the wind as if celebrating a moment that would change our lives forever. What started as a chance encounter became the most beautiful chapter of our lives."
+      "title": "بداية عمر جديد النا ♡",
+      "subtitle": "من حبّ الطفولة… لعيلة كاملة",
+      "text": "حبيبي… إنت مش بس حبّ حياتي، إنت طفولتي، مراهقتي، وأحلامي اللي كبرت معي خطوة خطوة. قلبي اختارك، وعمري كلّه كان وعد إني كون معك. تزوّجنا، ومرّينا بتعب، بانتظار، بدعاء ودموع. كنت دايمًا جنبي، تشدّ إيدي لما أضعف، وتحمّل وجعي وكأنو وجعك. وكان حلمي الوحيد… إني شوفك أب. واليوم لما شوفك عم تضم ابنّا، بعرف إنو الله ما عطاني بس ولد، عطاني عيلة كاملة بحضنك. إنت أماني اللي تحقّق وأمان ابنّا، وأجمل قدر كتبُه الله لقلبي 🤍"
     },
     "specialDate": {
-      "title": "Our Special Date",
-      "date": "September 15, 2021",
-      "text": "The night we knew this was forever. Under a canopy of stars, with the city lights twinkling below, we made a promise to always choose each other. Every day since has been a gift."
+      "title": "محطّة بتغيّر كل شي",
+      "date": "19/12/2025",
+      "text": "اليوم اللي صار فيه الحلم حقيقة… يوم شفنا عيلتنا تكبر، وصار الحب بيت وأمان وطفل بحضنّك."
     },
     "words": {
-      "title": "Our Words",
-      "quote": "In all the world, there is no heart for me like yours. In all the world, there is no love for you like mine.",
-      "author": "Maya Angelou"
+      "title": "كلماتي إلك",
+      "quote": "إنت أماني اللي تحقّق وأمان ابنّا، وأجمل قدر كتبُه الله لقلبي 🤍",
+      "author": "سلوى"
     }
   },
   "chapters": [
     {
       "id": 1,
-      "title": "The First Hello",
+      "title": "حب طفولتي",
       "image": "src/assets/chapter1.jpg",
-      "story": "Our eyes met across a crowded room, and in that moment, time seemed to stand still. Little did we know that this simple hello would lead to a lifetime of love and adventure together."
+      "story": "حبّنا بلّش من عمر صغير، قبل ما نفهم شو يعني حياة، وكبر معنا سنة بعد سنة. كبرنا سوا، تغيّرنا سوا، وبقي القلب دايمًا يعرف طريقه لقلبك."
     },
     {
       "id": 2,
-      "title": "Our First Adventure",
+      "title": "رفيق أيامي",
       "image": "src/assets/chapter2.jpg",
-      "story": "We packed our bags with nothing but dreams and set off into the unknown. Every new place we explored brought us closer, teaching us that home isn't a place—it's a person."
+      "story": "زواجنا ما كان مجرد يوم أو فستان أو خاتم، كان حصاد سنين حب وصبر وانتظار، ووعد قطعناه لبعض نكمّل العمر إيد بإيد مهما تعبنا."
     },
     {
       "id": 3,
-      "title": "The Proposal",
+      "title": "روح بقلبي منك",
       "image": "src/assets/chapter3.jpg",
-      "story": "With trembling hands and a heart full of hope, the question was asked under the same stars that had witnessed our first dance. The answer came with tears of joy and a promise of forever."
+      "story": "كل نبضة كانت رسالة حب بيني وبينك وبين حياتنا اللي عم نبنيها، وكانت كل لحظة تذكير إنو الله عم يكتب لنا أعظم هدية، هدية من روحنا سوا."
     },
     {
       "id": 4,
-      "title": "Building Our Dreams",
+      "title": "ثمرة حبّنا",
       "image": "src/assets/chapter4.jpg",
-      "story": "Together, we've built more than just a life—we've created a sanctuary of love, laughter, and endless possibilities. Every morning, we wake up grateful for this beautiful journey we share."
+      "story": "خالد… ثمرة حبّنا، ودليل إنو كل شي مرقنا فيه ما راح عبث. هو الحلم اللي صار حقيقة، والنور اللي وُلد من حبّنا، وأجمل نعمة عطانا إيّاها الله 🤍"
     }
   ],
   "finale": {
     "image": "src/assets/finale.jpg",
-    "title": "Forever & Always",
-    "text": "This is not just our story—it's a celebration of love in its purest form. Through every storm and every sunrise, we choose each other. Today, tomorrow, and for all the tomorrows that follow. Here's to us, to love, and to the beautiful adventure that lies ahead."
+    "title": "البيت إنت",
+    "text": "عيشتنا مع بعض ما كانت خالية من التعب، بس كانت مليانة أمان. معك تعلّمت إنو البيت مش مكان، البيت شخص… وصوتك وحضنك كانوا دايمًا ملجأي."
   }
 }
