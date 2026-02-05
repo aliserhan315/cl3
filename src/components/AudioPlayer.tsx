@@ -26,8 +26,10 @@ const getYouTubeVideoId = (url: string) => {
 
     if (host === "youtu.be") return u.pathname.replace("/", "").split(/[?&/]/)[0];
     if (u.pathname === "/watch") return (u.searchParams.get("v") || "").trim();
-    if (u.pathname.startsWith("/embed/")) return (u.pathname.split("/embed/")[1] || "").split(/[?&/]/)[0];
-    if (u.pathname.startsWith("/shorts/")) return (u.pathname.split("/shorts/")[1] || "").split(/[?&/]/)[0];
+    if (u.pathname.startsWith("/embed/"))
+      return (u.pathname.split("/embed/")[1] || "").split(/[?&/]/)[0];
+    if (u.pathname.startsWith("/shorts/"))
+      return (u.pathname.split("/shorts/")[1] || "").split(/[?&/]/)[0];
 
     return "";
   } catch {
@@ -42,13 +44,11 @@ declare global {
   }
 }
 
-/** Load YT script once, shared across renders */
 const loadYouTubeAPI = () => {
   if (window.YT && window.YT.Player) return Promise.resolve();
   if (ytScriptPromise) return ytScriptPromise;
 
   ytScriptPromise = new Promise<void>((resolve) => {
-    // if tag already exists (e.g. Next dev fast refresh)
     const existing = document.getElementById(YT_SCRIPT_ID);
     if (existing) {
       const check = setInterval(() => {
@@ -76,23 +76,35 @@ const loadYouTubeAPI = () => {
   return ytScriptPromise;
 };
 
+const SKIP_SECONDS = 8;
+
 const AudioPlayer = ({ songTitle, songUrl }: AudioPlayerProps) => {
   const isYT = useMemo(() => isYouTubeUrl(songUrl), [songUrl]);
   const ytId = useMemo(() => (isYT ? getYouTubeVideoId(songUrl) : ""), [isYT, songUrl]);
 
-  const [isPlaying, setIsPlaying] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
 
-  const audioRef = useRef<HTMLAudioElement>(null);
+  // 👇 NEW: if autoplay gets blocked, we show "tap to play" behavior
+  const [needsUserAction, setNeedsUserAction] = useState(false);
 
+  const audioRef = useRef<HTMLAudioElement>(null);
   const ytPlayerRef = useRef<any>(null);
   const ytContainerIdRef = useRef(`yt-audio-${Math.random().toString(16).slice(2)}`);
 
-  // ✅ preload YT asap (even before player creation)
+  // UI visibility
   useEffect(() => {
-    if (isYT) loadYouTubeAPI();
-  }, [isYT]);
+    const t = setTimeout(() => setIsVisible(true), 300);
+    return () => clearTimeout(t);
+  }, []);
+
+  // Reset state when url changes
+  useEffect(() => {
+    setNeedsUserAction(false);
+    setIsPlaying(false);
+    setIsMuted(false);
+  }, [songUrl]);
 
   // MP3 autoplay
   useEffect(() => {
@@ -109,15 +121,20 @@ const AudioPlayer = ({ songTitle, songUrl }: AudioPlayerProps) => {
         await audio.play();
         setIsPlaying(true);
         setIsMuted(false);
+        setNeedsUserAction(false);
       } catch {
+        // fallback: muted autoplay
         try {
           audio.muted = true;
           await audio.play();
           setIsPlaying(true);
           setIsMuted(true);
+          setNeedsUserAction(false);
         } catch {
+          // blocked: needs click
           setIsPlaying(false);
           setIsMuted(true);
+          setNeedsUserAction(true);
         }
       }
     };
@@ -125,23 +142,21 @@ const AudioPlayer = ({ songTitle, songUrl }: AudioPlayerProps) => {
     startAudio();
   }, [isYT, songUrl]);
 
-  // YouTube player (fast path)
+  // YouTube player
   useEffect(() => {
     if (!isYT) return;
-
-    // show UI faster (doesn't affect audio)
-    const uiTimer = setTimeout(() => setIsVisible(true), 300);
 
     const setup = async () => {
       if (!ytId) {
         setIsPlaying(false);
         setIsMuted(true);
+        setNeedsUserAction(true);
         return;
       }
 
       await loadYouTubeAPI();
 
-      // destroy old
+      // destroy old player
       if (ytPlayerRef.current?.destroy) {
         try {
           ytPlayerRef.current.destroy();
@@ -158,40 +173,59 @@ const AudioPlayer = ({ songTitle, songUrl }: AudioPlayerProps) => {
           playsinline: 1,
           loop: 1,
           playlist: ytId,
-          // ✅ "start" can also help skip initial black frame for some vids
-          // start: 0,
+          start: SKIP_SECONDS,
         },
         events: {
           onReady: (e: any) => {
             const p = e.target;
 
-            // volume like mp3
+            // prep: seek + volume
+            try {
+              p.seekTo(SKIP_SECONDS, true);
+            } catch {}
             try {
               p.setVolume(30);
             } catch {}
 
-            // try unmuted autoplay first, fallback to muted autoplay
+            // Try autoplay unmuted, fallback muted, else require click
             try {
               p.unMute();
               setIsMuted(false);
               p.playVideo();
               setIsPlaying(true);
+              setNeedsUserAction(false);
             } catch {
               try {
                 p.mute();
                 setIsMuted(true);
                 p.playVideo();
                 setIsPlaying(true);
+                setNeedsUserAction(false);
               } catch {
                 setIsPlaying(false);
                 setIsMuted(true);
+                setNeedsUserAction(true); // 👈 blocked until user clicks
               }
             }
           },
           onStateChange: (e: any) => {
-            if (e.data === 1) setIsPlaying(true);
+            // 1 playing, 2 paused, 0 ended
+            if (e.data === 1) {
+              setIsPlaying(true);
+              setNeedsUserAction(false);
+            }
             if (e.data === 2) setIsPlaying(false);
-            if (e.data === 0) setIsPlaying(false);
+
+            // loop from SKIP_SECONDS
+            if (e.data === 0) {
+              try {
+                ytPlayerRef.current?.seekTo?.(SKIP_SECONDS, true);
+                ytPlayerRef.current?.playVideo?.();
+                setIsPlaying(true);
+              } catch {
+                setIsPlaying(false);
+              }
+            }
           },
         },
       });
@@ -200,7 +234,6 @@ const AudioPlayer = ({ songTitle, songUrl }: AudioPlayerProps) => {
     setup();
 
     return () => {
-      clearTimeout(uiTimer);
       if (ytPlayerRef.current?.destroy) {
         try {
           ytPlayerRef.current.destroy();
@@ -210,14 +243,60 @@ const AudioPlayer = ({ songTitle, songUrl }: AudioPlayerProps) => {
     };
   }, [isYT, ytId]);
 
-  // UI visibility for mp3 (fast)
-  useEffect(() => {
-    if (isYT) return;
-    const t = setTimeout(() => setIsVisible(true), 300);
-    return () => clearTimeout(t);
-  }, [isYT]);
+  const startPlaybackWithUserGesture = async () => {
+    if (isYT) {
+      const p = ytPlayerRef.current;
+      if (!p) return;
+
+      try {
+        // user gesture -> can start reliably
+        p.seekTo(SKIP_SECONDS, true);
+        p.unMute();
+        setIsMuted(false);
+        p.playVideo();
+
+        setIsPlaying(true);
+        setNeedsUserAction(false);
+      } catch {
+        // as a fallback, start muted
+        try {
+          p.mute();
+          setIsMuted(true);
+          p.playVideo();
+          setIsPlaying(true);
+          setNeedsUserAction(false);
+        } catch {}
+      }
+      return;
+    }
+
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    try {
+      audio.muted = false;
+      setIsMuted(false);
+      await audio.play();
+      setIsPlaying(true);
+      setNeedsUserAction(false);
+    } catch {
+      try {
+        audio.muted = true;
+        setIsMuted(true);
+        await audio.play();
+        setIsPlaying(true);
+        setNeedsUserAction(false);
+      } catch {}
+    }
+  };
 
   const togglePlay = async () => {
+    // if autoplay was blocked, first click should start immediately
+    if (needsUserAction) {
+      await startPlaybackWithUserGesture();
+      return;
+    }
+
     if (isYT) {
       const p = ytPlayerRef.current;
       if (!p) return;
@@ -227,8 +306,6 @@ const AudioPlayer = ({ songTitle, songUrl }: AudioPlayerProps) => {
           p.pauseVideo();
           setIsPlaying(false);
         } else {
-          p.unMute();
-          setIsMuted(false);
           p.playVideo();
           setIsPlaying(true);
         }
@@ -245,12 +322,11 @@ const AudioPlayer = ({ songTitle, songUrl }: AudioPlayerProps) => {
         setIsPlaying(false);
         return;
       }
-      audio.muted = false;
-      setIsMuted(false);
       await audio.play();
       setIsPlaying(true);
     } catch {
       setIsPlaying(false);
+      setNeedsUserAction(true);
     }
   };
 
@@ -277,10 +353,6 @@ const AudioPlayer = ({ songTitle, songUrl }: AudioPlayerProps) => {
     const nextMuted = !isMuted;
     audio.muted = nextMuted;
     setIsMuted(nextMuted);
-
-    if (!nextMuted && !isPlaying) {
-      audio.play().then(() => setIsPlaying(true)).catch(() => {});
-    }
   };
 
   return (
@@ -310,13 +382,16 @@ const AudioPlayer = ({ songTitle, songUrl }: AudioPlayerProps) => {
           <button
             onClick={togglePlay}
             className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white btn-hover"
-            aria-label={isPlaying ? "Pause music" : "Play music"}
+            aria-label={needsUserAction ? "Tap to start music" : isPlaying ? "Pause music" : "Play music"}
+            title={needsUserAction ? "Tap to start (browser blocked autoplay)" : undefined}
           >
             <Music size={18} className={isPlaying ? "pulse-animation" : ""} />
           </button>
 
           <div className="hidden sm:block">
-            <p className="text-xs text-gray-400">Now Playing</p>
+            <p className="text-xs text-gray-400">
+              {needsUserAction ? "Tap to start" : "Now Playing"}
+            </p>
             <p className="text-sm text-gray-900 dark:text-gray-100">{songTitle}</p>
           </div>
 
