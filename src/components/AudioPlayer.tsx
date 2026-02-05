@@ -6,7 +6,9 @@ interface AudioPlayerProps {
   songUrl: string; // mp3 url OR YouTube url
 }
 
-/** Detect youtube links (youtube.com / youtu.be) */
+const YT_SCRIPT_ID = "yt-iframe-api";
+let ytScriptPromise: Promise<void> | null = null;
+
 const isYouTubeUrl = (url: string) => {
   try {
     const u = new URL(url);
@@ -17,27 +19,15 @@ const isYouTubeUrl = (url: string) => {
   }
 };
 
-/** Extract YouTube video id from common url formats */
 const getYouTubeVideoId = (url: string) => {
   try {
     const u = new URL(url);
     const host = u.hostname.replace("www.", "");
 
-    if (host === "youtu.be") {
-      return u.pathname.replace("/", "").split("?")[0].split("&")[0];
-    }
-
-    if (u.pathname === "/watch") {
-      return (u.searchParams.get("v") || "").trim();
-    }
-
-    if (u.pathname.startsWith("/embed/")) {
-      return (u.pathname.split("/embed/")[1] || "").split("?")[0].split("&")[0];
-    }
-
-    if (u.pathname.startsWith("/shorts/")) {
-      return (u.pathname.split("/shorts/")[1] || "").split("?")[0].split("&")[0];
-    }
+    if (host === "youtu.be") return u.pathname.replace("/", "").split(/[?&/]/)[0];
+    if (u.pathname === "/watch") return (u.searchParams.get("v") || "").trim();
+    if (u.pathname.startsWith("/embed/")) return (u.pathname.split("/embed/")[1] || "").split(/[?&/]/)[0];
+    if (u.pathname.startsWith("/shorts/")) return (u.pathname.split("/shorts/")[1] || "").split(/[?&/]/)[0];
 
     return "";
   } catch {
@@ -52,23 +42,59 @@ declare global {
   }
 }
 
+/** Load YT script once, shared across renders */
+const loadYouTubeAPI = () => {
+  if (window.YT && window.YT.Player) return Promise.resolve();
+  if (ytScriptPromise) return ytScriptPromise;
+
+  ytScriptPromise = new Promise<void>((resolve) => {
+    // if tag already exists (e.g. Next dev fast refresh)
+    const existing = document.getElementById(YT_SCRIPT_ID);
+    if (existing) {
+      const check = setInterval(() => {
+        if (window.YT && window.YT.Player) {
+          clearInterval(check);
+          resolve();
+        }
+      }, 20);
+      return;
+    }
+
+    const tag = document.createElement("script");
+    tag.id = YT_SCRIPT_ID;
+    tag.src = "https://www.youtube.com/iframe_api";
+    tag.async = true;
+    document.head.appendChild(tag);
+
+    const prev = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => {
+      prev?.();
+      resolve();
+    };
+  });
+
+  return ytScriptPromise;
+};
+
 const AudioPlayer = ({ songTitle, songUrl }: AudioPlayerProps) => {
   const isYT = useMemo(() => isYouTubeUrl(songUrl), [songUrl]);
   const ytId = useMemo(() => (isYT ? getYouTubeVideoId(songUrl) : ""), [isYT, songUrl]);
 
-  // UI state
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
 
-  // MP3 audio ref
   const audioRef = useRef<HTMLAudioElement>(null);
 
-  // YouTube player refs
   const ytPlayerRef = useRef<any>(null);
   const ytContainerIdRef = useRef(`yt-audio-${Math.random().toString(16).slice(2)}`);
 
-  // --- MP3 autoplay (same logic you had) ---
+  // ✅ preload YT asap (even before player creation)
+  useEffect(() => {
+    if (isYT) loadYouTubeAPI();
+  }, [isYT]);
+
+  // MP3 autoplay
   useEffect(() => {
     if (isYT) return;
 
@@ -99,56 +125,27 @@ const AudioPlayer = ({ songTitle, songUrl }: AudioPlayerProps) => {
     startAudio();
   }, [isYT, songUrl]);
 
-  // --- YouTube: load API + create hidden player ---
+  // YouTube player (fast path)
   useEffect(() => {
     if (!isYT) return;
-    if (!ytId) {
-      setIsPlaying(false);
-      setIsMuted(true);
-      return;
-    }
 
-    const showTimer = setTimeout(() => setIsVisible(true), 2000);
+    // show UI faster (doesn't affect audio)
+    const uiTimer = setTimeout(() => setIsVisible(true), 300);
 
-    const ensureScript = () =>
-      new Promise<void>((resolve) => {
-        // already loaded
-        if (window.YT && window.YT.Player) return resolve();
+    const setup = async () => {
+      if (!ytId) {
+        setIsPlaying(false);
+        setIsMuted(true);
+        return;
+      }
 
-        // already injected
-        const existing = document.getElementById("yt-iframe-api");
-        if (existing) {
-          const check = setInterval(() => {
-            if (window.YT && window.YT.Player) {
-              clearInterval(check);
-              resolve();
-            }
-          }, 50);
-          return;
-        }
+      await loadYouTubeAPI();
 
-        const tag = document.createElement("script");
-        tag.id = "yt-iframe-api";
-        tag.src = "https://www.youtube.com/iframe_api";
-        document.body.appendChild(tag);
-
-        const prev = window.onYouTubeIframeAPIReady;
-        window.onYouTubeIframeAPIReady = () => {
-          prev?.();
-          resolve();
-        };
-      });
-
-    const createPlayer = async () => {
-      await ensureScript();
-
-      // destroy old player if any
+      // destroy old
       if (ytPlayerRef.current?.destroy) {
         try {
           ytPlayerRef.current.destroy();
-        } catch {
-          /* ignore */
-        }
+        } catch {}
         ytPlayerRef.current = null;
       }
 
@@ -158,21 +155,22 @@ const AudioPlayer = ({ songTitle, songUrl }: AudioPlayerProps) => {
           autoplay: 1,
           controls: 0,
           rel: 0,
-          modestbranding: 1,
           playsinline: 1,
           loop: 1,
-          playlist: ytId, // required for loop
+          playlist: ytId,
+          // ✅ "start" can also help skip initial black frame for some vids
+          // start: 0,
         },
         events: {
-          onReady: async (e: any) => {
+          onReady: (e: any) => {
             const p = e.target;
 
-            // set volume similar to mp3 behavior (0-100)
+            // volume like mp3
             try {
               p.setVolume(30);
             } catch {}
 
-            // Try autoplay with sound first, then fallback to muted
+            // try unmuted autoplay first, fallback to muted autoplay
             try {
               p.unMute();
               setIsMuted(false);
@@ -191,7 +189,6 @@ const AudioPlayer = ({ songTitle, songUrl }: AudioPlayerProps) => {
             }
           },
           onStateChange: (e: any) => {
-            // YT states: 1 playing, 2 paused, 0 ended
             if (e.data === 1) setIsPlaying(true);
             if (e.data === 2) setIsPlaying(false);
             if (e.data === 0) setIsPlaying(false);
@@ -200,25 +197,23 @@ const AudioPlayer = ({ songTitle, songUrl }: AudioPlayerProps) => {
       });
     };
 
-    createPlayer();
+    setup();
 
     return () => {
-      clearTimeout(showTimer);
+      clearTimeout(uiTimer);
       if (ytPlayerRef.current?.destroy) {
         try {
           ytPlayerRef.current.destroy();
-        } catch {
-          /* ignore */
-        }
+        } catch {}
         ytPlayerRef.current = null;
       }
     };
   }, [isYT, ytId]);
 
-  // visibility timer for both cases
+  // UI visibility for mp3 (fast)
   useEffect(() => {
-    if (isYT) return; // YT handled above
-    const t = setTimeout(() => setIsVisible(true), 2000);
+    if (isYT) return;
+    const t = setTimeout(() => setIsVisible(true), 300);
     return () => clearTimeout(t);
   }, [isYT]);
 
@@ -232,15 +227,12 @@ const AudioPlayer = ({ songTitle, songUrl }: AudioPlayerProps) => {
           p.pauseVideo();
           setIsPlaying(false);
         } else {
-          // user gesture helps unmute policies
           p.unMute();
           setIsMuted(false);
           p.playVideo();
           setIsPlaying(true);
         }
-      } catch {
-        /* ignore */
-      }
+      } catch {}
       return;
     }
 
@@ -253,7 +245,6 @@ const AudioPlayer = ({ songTitle, songUrl }: AudioPlayerProps) => {
         setIsPlaying(false);
         return;
       }
-
       audio.muted = false;
       setIsMuted(false);
       await audio.play();
@@ -276,9 +267,7 @@ const AudioPlayer = ({ songTitle, songUrl }: AudioPlayerProps) => {
           p.mute();
           setIsMuted(true);
         }
-      } catch {
-        /* ignore */
-      }
+      } catch {}
       return;
     }
 
@@ -290,72 +279,33 @@ const AudioPlayer = ({ songTitle, songUrl }: AudioPlayerProps) => {
     setIsMuted(nextMuted);
 
     if (!nextMuted && !isPlaying) {
-      audio
-        .play()
-        .then(() => setIsPlaying(true))
-        .catch(() => {
-          /* ignore */
-        });
+      audio.play().then(() => setIsPlaying(true)).catch(() => {});
     }
   };
 
   return (
     <>
       <style>{`
-        @keyframes fadeInUp {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
-        }
-
-        .fade-in-up { animation: fadeInUp 0.8s ease-out forwards; }
-
-        .glass-card {
-          background: rgba(255, 255, 255, 0.1);
-          backdrop-filter: blur(10px);
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
-        }
-
-        .btn-hover { transition: transform 0.2s ease; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px);} to { opacity: 1; transform: translateY(0);} }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+        .fade-in-up { animation: fadeInUp 0.35s ease-out forwards; }
+        .glass-card { background: rgba(255,255,255,.1); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,.2); box-shadow: 0 8px 32px rgba(0,0,0,.1); }
+        .btn-hover { transition: transform .2s ease; }
         .btn-hover:hover { transform: scale(1.1); }
-        .btn-hover:active { transform: scale(0.95); }
-
-        .pulse-animation {
-          animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-
-        /* hidden YouTube player container */
-        .yt-hidden {
-          position: fixed;
-          width: 1px;
-          height: 1px;
-          left: -9999px;
-          top: -9999px;
-          opacity: 0;
-          pointer-events: none;
-        }
+        .btn-hover:active { transform: scale(.95); }
+        .pulse-animation { animation: pulse 2s cubic-bezier(.4,0,.6,1) infinite; }
+        .yt-hidden { position: fixed; width: 1px; height: 1px; left: -9999px; top: -9999px; opacity: 0; pointer-events: none; }
       `}</style>
 
-      {/* MP3 / direct audio */}
       {!isYT && (
         <audio ref={audioRef} loop preload="auto">
           <source src={songUrl} type="audio/mpeg" />
         </audio>
       )}
 
-      {/* YouTube hidden player */}
       {isYT && <div id={ytContainerIdRef.current} className="yt-hidden" />}
 
-      <div
-        className={`fixed bottom-6 right-6 z-50 ${
-          isVisible ? "fade-in-up" : "opacity-0"
-        }`}
-      >
+      <div className={`fixed bottom-6 right-6 z-50 ${isVisible ? "fade-in-up" : "opacity-0"}`}>
         <div className="glass-card rounded-full p-3 flex items-center gap-3">
           <button
             onClick={togglePlay}
