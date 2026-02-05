@@ -45,13 +45,6 @@ const getYouTubeVideoId = (url: string) => {
   }
 };
 
-declare global {
-  interface Window {
-    YT?: any;
-    onYouTubeIframeAPIReady?: () => void;
-  }
-}
-
 const AudioPlayer = ({ songTitle, songUrl }: AudioPlayerProps) => {
   const isYT = useMemo(() => isYouTubeUrl(songUrl), [songUrl]);
   const ytId = useMemo(() => (isYT ? getYouTubeVideoId(songUrl) : ""), [isYT, songUrl]);
@@ -60,17 +53,67 @@ const AudioPlayer = ({ songTitle, songUrl }: AudioPlayerProps) => {
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+  const [audioSrc, setAudioSrc] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string>("");
 
-  // MP3 audio ref
+  // Audio ref (works for both MP3 and YouTube audio)
   const audioRef = useRef<HTMLAudioElement>(null);
 
-  // YouTube player refs
-  const ytPlayerRef = useRef<any>(null);
-  const ytContainerIdRef = useRef(`yt-audio-${Math.random().toString(16).slice(2)}`);
-
-  // --- MP3 autoplay (same logic you had) ---
+  // Extract audio URL from YouTube video
   useEffect(() => {
-    if (isYT) return;
+    if (!isYT || !ytId) {
+      setAudioSrc(songUrl);
+      return;
+    }
+
+    const fetchYouTubeAudio = async () => {
+      setIsLoading(true);
+      setError("");
+
+      try {
+        // Using a CORS-friendly YouTube audio extraction service
+        // Option 1: Use inv.nadeko.net (Invidious instance) - lightweight and fast
+        const invidiousUrl = `https://inv.nadeko.net/api/v1/videos/${ytId}`;
+        
+        const response = await fetch(invidiousUrl);
+        if (!response.ok) throw new Error("Failed to fetch audio");
+
+        const data = await response.json();
+        
+        // Find the best audio-only format
+        const audioFormats = data.adaptiveFormats?.filter(
+          (f: any) => f.type?.startsWith("audio/")
+        ) || [];
+
+        if (audioFormats.length === 0) {
+          throw new Error("No audio format found");
+        }
+
+        // Prefer opus or webm audio, fallback to mp4
+        const bestAudio = audioFormats.find((f: any) => f.type?.includes("opus")) ||
+                         audioFormats.find((f: any) => f.type?.includes("webm")) ||
+                         audioFormats[0];
+
+        setAudioSrc(bestAudio.url);
+        setIsLoading(false);
+      } catch (err) {
+        console.error("YouTube audio extraction failed:", err);
+        setError("Failed to load audio from YouTube");
+        setIsLoading(false);
+        
+        // Fallback: try alternative method using youtube-nocookie embed
+        // This won't extract audio but will show an error to the user
+        setAudioSrc("");
+      }
+    };
+
+    fetchYouTubeAudio();
+  }, [isYT, ytId, songUrl]);
+
+  // Autoplay logic
+  useEffect(() => {
+    if (!audioSrc) return;
 
     const audio = audioRef.current;
     if (!audio) return;
@@ -97,153 +140,15 @@ const AudioPlayer = ({ songTitle, songUrl }: AudioPlayerProps) => {
     };
 
     startAudio();
-  }, [isYT, songUrl]);
+  }, [audioSrc]);
 
-  // --- YouTube: load API + create hidden player ---
+  // Visibility timer
   useEffect(() => {
-    if (!isYT) return;
-    if (!ytId) {
-      setIsPlaying(false);
-      setIsMuted(true);
-      return;
-    }
-
-    const showTimer = setTimeout(() => setIsVisible(true), 2000);
-
-    const ensureScript = () =>
-      new Promise<void>((resolve) => {
-        // already loaded
-        if (window.YT && window.YT.Player) return resolve();
-
-        // already injected
-        const existing = document.getElementById("yt-iframe-api");
-        if (existing) {
-          const check = setInterval(() => {
-            if (window.YT && window.YT.Player) {
-              clearInterval(check);
-              resolve();
-            }
-          }, 50);
-          return;
-        }
-
-        const tag = document.createElement("script");
-        tag.id = "yt-iframe-api";
-        tag.src = "https://www.youtube.com/iframe_api";
-        document.body.appendChild(tag);
-
-        const prev = window.onYouTubeIframeAPIReady;
-        window.onYouTubeIframeAPIReady = () => {
-          prev?.();
-          resolve();
-        };
-      });
-
-    const createPlayer = async () => {
-      await ensureScript();
-
-      // destroy old player if any
-      if (ytPlayerRef.current?.destroy) {
-        try {
-          ytPlayerRef.current.destroy();
-        } catch {
-          /* ignore */
-        }
-        ytPlayerRef.current = null;
-      }
-
-      ytPlayerRef.current = new window.YT.Player(ytContainerIdRef.current, {
-        videoId: ytId,
-        playerVars: {
-          autoplay: 1,
-          controls: 0,
-          rel: 0,
-          modestbranding: 1,
-          playsinline: 1,
-          loop: 1,
-          playlist: ytId, // required for loop
-        },
-        events: {
-          onReady: async (e: any) => {
-            const p = e.target;
-
-            // set volume similar to mp3 behavior (0-100)
-            try {
-              p.setVolume(30);
-            } catch {}
-
-            // Try autoplay with sound first, then fallback to muted
-            try {
-              p.unMute();
-              setIsMuted(false);
-              p.playVideo();
-              setIsPlaying(true);
-            } catch {
-              try {
-                p.mute();
-                setIsMuted(true);
-                p.playVideo();
-                setIsPlaying(true);
-              } catch {
-                setIsPlaying(false);
-                setIsMuted(true);
-              }
-            }
-          },
-          onStateChange: (e: any) => {
-            // YT states: 1 playing, 2 paused, 0 ended
-            if (e.data === 1) setIsPlaying(true);
-            if (e.data === 2) setIsPlaying(false);
-            if (e.data === 0) setIsPlaying(false);
-          },
-        },
-      });
-    };
-
-    createPlayer();
-
-    return () => {
-      clearTimeout(showTimer);
-      if (ytPlayerRef.current?.destroy) {
-        try {
-          ytPlayerRef.current.destroy();
-        } catch {
-          /* ignore */
-        }
-        ytPlayerRef.current = null;
-      }
-    };
-  }, [isYT, ytId]);
-
-  // visibility timer for both cases
-  useEffect(() => {
-    if (isYT) return; // YT handled above
     const t = setTimeout(() => setIsVisible(true), 2000);
     return () => clearTimeout(t);
-  }, [isYT]);
+  }, []);
 
   const togglePlay = async () => {
-    if (isYT) {
-      const p = ytPlayerRef.current;
-      if (!p) return;
-
-      try {
-        if (isPlaying) {
-          p.pauseVideo();
-          setIsPlaying(false);
-        } else {
-          // user gesture helps unmute policies
-          p.unMute();
-          setIsMuted(false);
-          p.playVideo();
-          setIsPlaying(true);
-        }
-      } catch {
-        /* ignore */
-      }
-      return;
-    }
-
     const audio = audioRef.current;
     if (!audio) return;
 
@@ -264,24 +169,6 @@ const AudioPlayer = ({ songTitle, songUrl }: AudioPlayerProps) => {
   };
 
   const toggleMute = () => {
-    if (isYT) {
-      const p = ytPlayerRef.current;
-      if (!p) return;
-
-      try {
-        if (isMuted) {
-          p.unMute();
-          setIsMuted(false);
-        } else {
-          p.mute();
-          setIsMuted(true);
-        }
-      } catch {
-        /* ignore */
-      }
-      return;
-    }
-
     const audio = audioRef.current;
     if (!audio) return;
 
@@ -293,9 +180,7 @@ const AudioPlayer = ({ songTitle, songUrl }: AudioPlayerProps) => {
       audio
         .play()
         .then(() => setIsPlaying(true))
-        .catch(() => {
-          /* ignore */
-        });
+        .catch(() => {});
     }
   };
 
@@ -310,6 +195,10 @@ const AudioPlayer = ({ songTitle, songUrl }: AudioPlayerProps) => {
         @keyframes pulse {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.5; }
+        }
+
+        @keyframes spin {
+          to { transform: rotate(360deg); }
         }
 
         .fade-in-up { animation: fadeInUp 0.8s ease-out forwards; }
@@ -329,27 +218,19 @@ const AudioPlayer = ({ songTitle, songUrl }: AudioPlayerProps) => {
           animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
         }
 
-        /* hidden YouTube player container */
-        .yt-hidden {
-          position: fixed;
-          width: 1px;
-          height: 1px;
-          left: -9999px;
-          top: -9999px;
-          opacity: 0;
-          pointer-events: none;
+        .spin-animation {
+          animation: spin 1s linear infinite;
         }
       `}</style>
 
-      {/* MP3 / direct audio */}
-      {!isYT && (
+      {/* Single audio element for both MP3 and YouTube audio */}
+      {audioSrc && (
         <audio ref={audioRef} loop preload="auto">
-          <source src={songUrl} type="audio/mpeg" />
+          <source src={audioSrc} type="audio/mpeg" />
+          <source src={audioSrc} type="audio/webm" />
+          <source src={audioSrc} type="audio/mp4" />
         </audio>
       )}
-
-      {/* YouTube hidden player */}
-      {isYT && <div id={ytContainerIdRef.current} className="yt-hidden" />}
 
       <div
         className={`fixed bottom-6 right-6 z-50 ${
@@ -361,19 +242,29 @@ const AudioPlayer = ({ songTitle, songUrl }: AudioPlayerProps) => {
             onClick={togglePlay}
             className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white btn-hover"
             aria-label={isPlaying ? "Pause music" : "Play music"}
+            disabled={isLoading || !!error}
           >
-            <Music size={18} className={isPlaying ? "pulse-animation" : ""} />
+            {isLoading ? (
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full spin-animation" />
+            ) : (
+              <Music size={18} className={isPlaying ? "pulse-animation" : ""} />
+            )}
           </button>
 
           <div className="hidden sm:block">
-            <p className="text-xs text-gray-400">Now Playing</p>
-            <p className="text-sm text-gray-900 dark:text-gray-100">{songTitle}</p>
+            <p className="text-xs text-gray-400">
+              {isLoading ? "Loading..." : error ? "Error" : "Now Playing"}
+            </p>
+            <p className="text-sm text-gray-900 dark:text-gray-100">
+              {error || songTitle}
+            </p>
           </div>
 
           <button
             onClick={toggleMute}
             className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-900 dark:text-gray-100 btn-hover"
             aria-label={isMuted ? "Unmute" : "Mute"}
+            disabled={isLoading || !!error}
           >
             {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
           </button>
