@@ -1,15 +1,16 @@
-import { useState, useRef } from 'react';
-import { motion, useInView } from 'framer-motion';
-import ChapterModal from './ChapterModal';
-import chapter1 from '@/assets/chapter1.jpg';
-import chapter2 from '@/assets/chapter2.jpg';
-import chapter3 from '@/assets/chapter3.jpg';
-import chapter4 from '@/assets/chapter4.jpg';
+import { useState, useRef } from "react";
+import { motion, useInView } from "framer-motion";
+import ChapterModal from "./ChapterModal";
+import chapter1 from "@/assets/chapter1.mp4";
+import chapter2 from "@/assets/chapter2.jpg";
+import chapter3 from "@/assets/chapter3.jpg";
+import chapter4 from "@/assets/chapter4.jpg";
+import chapter5 from "@/assets/chapter5.jpg";
 
 interface Chapter {
   id: number;
   title: string;
-  image: string;
+  image: string; // can be image OR video url
   story: string;
 }
 
@@ -17,24 +18,33 @@ interface ChaptersSectionProps {
   chapters: Chapter[];
 }
 
-const chapterImages: Record<number, string> = {
+const chapterMedia: Record<number, string> = {
   1: chapter1,
   2: chapter2,
   3: chapter3,
   4: chapter4,
+  5: chapter5,
 };
 
-const ChapterCard = ({ 
-  chapter, 
-  index, 
-  onClick 
-}: { 
-  chapter: Chapter; 
+const isVideo = (src: string) => {
+  const clean = src.split("?")[0].toLowerCase();
+  return clean.endsWith(".mp4") || clean.endsWith(".webm") || clean.endsWith(".mov");
+};
+
+const ChapterCard = ({
+  chapter,
+  index,
+  onClick,
+}: {
+  chapter: Chapter;
   index: number;
   onClick: () => void;
 }) => {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-50px" });
+
+  const mediaSrc = chapterMedia[chapter.id] || chapter.image;
+  const video = isVideo(mediaSrc);
 
   return (
     <motion.div
@@ -46,16 +56,32 @@ const ChapterCard = ({
       className="group cursor-pointer"
     >
       <div className="relative aspect-[3/4] rounded-2xl overflow-hidden romantic-shadow">
-        <img
-          src={chapterImages[chapter.id] || chapter.image}
-          alt={chapter.title}
-          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-        />
-        
+        {video ? (
+          <video
+            src={mediaSrc}
+            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+            muted
+            playsInline
+            preload="metadata"
+            // optional: show a moving preview
+            autoPlay
+            loop
+          />
+        ) : (
+          <img
+            src={mediaSrc}
+            alt={chapter.title}
+            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+            loading="lazy"
+          />
+        )}
+
         {/* Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-foreground/80 via-foreground/20 to-transparent 
-                        opacity-60 group-hover:opacity-80 transition-opacity duration-300" />
-        
+        <div
+          className="absolute inset-0 bg-gradient-to-t from-foreground/80 via-foreground/20 to-transparent
+                        opacity-60 group-hover:opacity-80 transition-opacity duration-300"
+        />
+
         {/* Content */}
         <div className="absolute inset-0 p-6 flex flex-col justify-end">
           <motion.div
@@ -66,21 +92,24 @@ const ChapterCard = ({
             <span className="text-primary-foreground/70 font-body text-sm tracking-widest uppercase">
               Chapter {chapter.id}
             </span>
-            <h3 className="font-display text-2xl md:text-3xl text-primary-foreground mt-2 
-                           group-hover:text-rose-light transition-colors duration-300">
+
+            <h3
+              className="font-display text-2xl md:text-3xl text-primary-foreground mt-2
+                           group-hover:text-rose-light transition-colors duration-300"
+            >
               {chapter.title}
             </h3>
-            
+
             <motion.div
               className="mt-4 flex items-center gap-2 text-primary-foreground/80"
               initial={{ x: 0 }}
               whileHover={{ x: 5 }}
             >
-              <span className="font-body text-sm">Read the story</span>
-              <svg 
-                className="w-4 h-4 transition-transform group-hover:translate-x-1" 
-                fill="none" 
-                stroke="currentColor" 
+              <span className="font-body text-sm">{video ? "Watch the moment" : "Read the story"}</span>
+              <svg
+                className="w-4 h-4 transition-transform group-hover:translate-x-1"
+                fill="none"
+                stroke="currentColor"
                 viewBox="0 0 24 24"
               >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -90,8 +119,10 @@ const ChapterCard = ({
         </div>
 
         {/* Decorative border on hover */}
-        <div className="absolute inset-0 border-2 border-primary/0 rounded-2xl 
-                        group-hover:border-primary/30 transition-colors duration-300" />
+        <div
+          className="absolute inset-0 border-2 border-primary/0 rounded-2xl
+                        group-hover:border-primary/30 transition-colors duration-300"
+        />
       </div>
     </motion.div>
   );
@@ -117,7 +148,7 @@ const ChaptersSection = ({ chapters }: ChaptersSectionProps) => {
             Our Chapters
           </h2>
           <p className="font-body text-lg text-muted-foreground mt-4 max-w-2xl mx-auto">
-            Every photograph tells a story. Click to discover the memories behind each moment.
+            Click to discover the memories behind each moment.
           </p>
         </motion.div>
 
@@ -127,10 +158,12 @@ const ChaptersSection = ({ chapters }: ChaptersSectionProps) => {
               key={chapter.id}
               chapter={chapter}
               index={index}
-              onClick={() => setSelectedChapter({
-                ...chapter,
-                image: chapterImages[chapter.id] || chapter.image
-              })}
+              onClick={() =>
+                setSelectedChapter({
+                  ...chapter,
+                  image: chapterMedia[chapter.id] || chapter.image, // could be mp4
+                })
+              }
             />
           ))}
         </div>

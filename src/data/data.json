@@ -1,65 +1,64 @@
 {
   "couple": {
-    "name1": "سلوى",
-    "name2": "نور الدين"
+    "name1": "christie",
+    "name2": "hamad"
   },
   "song": {
-    "url": "https://youtu.be/l_4m7SsNXZ8?si=Yh02ZXLN8cXq-AB4",
-    "title": "حبيبي للأبد ♡"
-  },
-  "meta": {
-    "orderDate": "2025-12-19",
-    "caption": "بداية عمر جديد النا♡",
-    "package": "1 Frame - 1 Card (30$)",
-    "orderId": "76065559",
-    "phone": "76065559"
+    "url": "https://youtu.be/Tv4--ekFMKQ",
+    "title": "akhras - Skaba (Official Music Video)"
   },
   "storyOverview": {
     "beginning": {
-      "title": "بداية عمر جديد النا ♡",
-      "subtitle": "من حبّ الطفولة… لعيلة كاملة",
-      "text": "حبيبي… إنت مش بس حبّ حياتي، إنت طفولتي، مراهقتي، وأحلامي اللي كبرت معي خطوة خطوة. قلبي اختارك، وعمري كلّه كان وعد إني كون معك. تزوّجنا، ومرّينا بتعب، بانتظار، بدعاء ودموع. كنت دايمًا جنبي، تشدّ إيدي لما أضعف، وتحمّل وجعي وكأنو وجعك. وكان حلمي الوحيد… إني شوفك أب. واليوم لما شوفك عم تضم ابنّا، بعرف إنو الله ما عطاني بس ولد، عطاني عيلة كاملة بحضنك. إنت أماني اللي تحقّق وأمان ابنّا، وأجمل قدر كتبُه الله لقلبي 🤍"
+      "title": "How it all started 🤗?",
+      "subtitle": "Kell chi balash b follow… w sarna nahna",
+      "text": "Kell whd ken bi hayeto… ana knt maa chakhess w enta ma ken bi rassak elmawdou3 asln… bas bel niheye ederna nejtem3 hamdellah. Bedzakar kif waeta 3meltle follow w knt bel madrase… cheyfetak kaza marra w ebelet elfollow w elt aade metlk metl hayala hadan. Bas ma kent 3erfe enno ha yeje waet nkoun hek… mtl ma nahna hala❤️ Bedzakar kif balachna nehke… ken ahdam chi w ahla chi b zekrayete. Kif kenna nesstehe… w ba3den el calls… w kel marra koun 3m jarreb ftah mawdou3 la t7ke bas enta knt ktir tesstehe😂 Bas chwe chwe te3wadna 3a ba3d… w habayna ba3d… w amer fadahna tnaynetna ba3den😂😂 Bas li ba3erfo halla… ene sort hebak add el dene w aktr❤️"
     },
     "specialDate": {
-      "title": "محطّة بتغيّر كل شي",
-      "date": "19/12/2025",
-      "text": "اليوم اللي صار فيه الحلم حقيقة… يوم شفنا عيلتنا تكبر، وصار الحب بيت وأمان وطفل بحضنّك."
+      "title": "Our Anniversary",
+      "date": "31/05/2025",
+      "text": "its out anniversary… lama kell chi helo balash baynetna. Ma بعرف kif bde وصفها bas anjad kenit amazing."
     },
     "words": {
-      "title": "كلماتي إلك",
-      "quote": "إنت أماني اللي تحقّق وأمان ابنّا، وأجمل قدر كتبُه الله لقلبي 🤍",
-      "author": "سلوى"
+      "title": "From the Heart",
+      "quote": "BHEBAK AADD ELDENE W AKTR YA ALBE ❤️❤️❤️",
+      "author": "christie"
     }
   },
   "chapters": [
     {
       "id": 1,
-      "title": "حب طفولتي",
-      "image": "src/assets/chapter1.jpg",
-      "story": "حبّنا بلّش من عمر صغير، قبل ما نفهم شو يعني حياة، وكبر معنا سنة بعد سنة. كبرنا سوا، تغيّرنا سوا، وبقي القلب دايمًا يعرف طريقه لقلبك."
+      "title": "How it all started 🤗?",
+      "image": "https://drive.google.com/open?id=1a5dIzUPkxGhX_lf6V5QaiyLrHJtKFFnb",
+      "story": "Kell whd ken bi hayeto… ana knt maa chakhess w enta ma ken bi rassak elmawdou3 asln… bas bel niheye ederna nejtem3 hamdellah. Bedzakar el follow bel madrase… w kif balachna nehke w kenna nesstehe ktir😂 Bas chwe chwe te3wadna 3a ba3d w sarna nahna… w habayna ba3d❤️"
     },
     {
       "id": 2,
-      "title": "رفيق أيامي",
-      "image": "src/assets/chapter2.jpg",
-      "story": "زواجنا ما كان مجرد يوم أو فستان أو خاتم، كان حصاد سنين حب وصبر وانتظار، ووعد قطعناه لبعض نكمّل العمر إيد بإيد مهما تعبنا."
+      "title": "Our First Video Call 😅",
+      "image": "https://drive.google.com/open?id=1s1EgAVxaxhN4oA7T86UQ35iZ-cTuZlLP",
+      "story": "Hayda ken awal video call mneftaho sawa… waeta knt messthiye hatta eftah camera😅 w hatta enta knt messtehe bas ana jabartak😂 Men hayda el call 3ende foo2 el 50 screenshot… kell chwe 3am a3melak screenshot w ana mkayfe❤️"
     },
     {
       "id": 3,
-      "title": "روح بقلبي منك",
-      "image": "src/assets/chapter3.jpg",
-      "story": "كل نبضة كانت رسالة حب بيني وبينك وبين حياتنا اللي عم نبنيها، وكانت كل لحظة تذكير إنو الله عم يكتب لنا أعظم هدية، هدية من روحنا سوا."
+      "title": "Ha Ahla Soura 3ende 💞",
+      "image": "https://drive.google.com/open?id=1pOqdeWbbeO3dpD-09Q05e9IKgObEeL7e",
+      "story": "Ha ahla soura 3ende hamad💞 Awal marra bnem 3a ketfak w enta messek ide… w ana حسّيت b amen ma bye ntasa. Kif kel ma yhez el autocard w yenzal rase enta deghre tdal te3melo… w rje3t hatet rassak foo2 rasse… lahza ktir helwe w btobssetne بس بمجرد edzakara💝"
     },
     {
       "id": 4,
-      "title": "ثمرة حبّنا",
-      "image": "src/assets/chapter4.jpg",
-      "story": "خالد… ثمرة حبّنا، ودليل إنو كل شي مرقنا فيه ما راح عبث. هو الحلم اللي صار حقيقة، والنور اللي وُلد من حبّنا، وأجمل نعمة عطانا إيّاها الله 🤍"
+      "title": "Ahla Text Enta Beetle Yeh 🤍",
+      "image": "https://drive.google.com/open?id=11UsDFcF3o_C1PjOWYajqEQRJn_5QJsnK",
+      "story": "Hayda ahla text enta beetle yeh hmd🤍 Mesh بس goodnight اللي بتصير goodmorning😙… bas hayda ken awal text 3njad حسّسني enno fi hadan bi aderne w bi hebne kif ma ana. Bde ellak merci 3a kell chi… w 3a kell marra بتثبتلي فيا ennak بتحبني❣️"
+    },
+    {
+      "id": 5,
+      "title": "Instagram Trust Moment 💃🏼",
+      "image": "https://drive.google.com/open?id=1kE4q6sIeG_YROtVbLQ5nnETgN44XJCqc",
+      "story": "Bedzakar hon waeta knt am tekhod telephone ta thotele accountak aa insta. 3melt hale nonchalante w ma hame😂 bas wallah men jouwa knt ktir mabssouta… enno hadan ya3te el tene accounto w kel chi privacy… mano chi hayin. W ana men jouwete knt am ore2os💃🏼💃🏼"
     }
   ],
   "finale": {
-    "image": "src/assets/finale.jpg",
-    "title": "البيت إنت",
-    "text": "عيشتنا مع بعض ما كانت خالية من التعب، بس كانت مليانة أمان. معك تعلّمت إنو البيت مش مكان، البيت شخص… وصوتك وحضنك كانوا دايمًا ملجأي."
+    "image": "https://drive.google.com/open?id=1Pb7UCG6B_w9p0KK17ygV9HtQlTqeQ-WN",
+    "title": "hay ending 🤍",
+    "text": "Ana ma ktir bheb hal soura bas enta bethebaa fa habet hotelak yehaa hon🤍 Ana yemkin ma baarf ktir koun romantic… bas sadeene bhebk add el dene w aktr. Kell yom btessbetle ennak elchakhess el sah… bi hakyak mae, b tari2tak, w kif بتردّيني و بتدافع عني و بتخلّيني safe. Betmana ndalna saw… nekbar sawa… w na3mil ayle helwe… w ma chi yfareena. *BHEBAK AADD ELDENE W AKTR YA ALBE* ❤️❤️❤️"
   }
 }
